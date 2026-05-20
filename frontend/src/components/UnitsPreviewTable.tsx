@@ -81,14 +81,14 @@ const columns = [
 ];
 
 export function UnitsPreviewTable() {
-  const { datasetId } = useDataset();
+  const { datasetId, filters } = useDataset();
   const [sorting, setSorting] = useState<SortingState>([
     { id: "risk_score", desc: true },
   ]);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["units", datasetId],
-    queryFn: () => fetchUnits(datasetId!),
+    queryKey: ["units", datasetId, filters],
+    queryFn: () => fetchUnits(datasetId!, filters),
     enabled: Boolean(datasetId),
   });
 
