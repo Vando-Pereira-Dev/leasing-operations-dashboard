@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 
 import { fetchUnits } from "@/api/leasing";
 import { RiskBadge } from "@/components/RiskBadge";
+import { UnitDetailDrawer } from "@/components/UnitDetailDrawer";
 import { useDataset } from "@/context/DatasetContext";
 import type { UnitRecord } from "@/types/api";
 
@@ -35,7 +36,9 @@ const columns = [
   columnHelper.accessor("unit", {
     header: "Unit",
     cell: (info) => (
-      <span className="font-medium text-slate-900">{info.getValue()}</span>
+      <span className="font-medium text-brand-700 underline-offset-2 group-hover:underline">
+        {info.getValue()}
+      </span>
     ),
   }),
   columnHelper.accessor("unit_type", {
@@ -45,7 +48,10 @@ const columns = [
   columnHelper.accessor("status", {
     header: "Status",
     cell: (info) => (
-      <span className="max-w-[140px] truncate text-slate-700" title={String(info.getValue() ?? "")}>
+      <span
+        className="max-w-[140px] truncate text-slate-700"
+        title={String(info.getValue() ?? "")}
+      >
         {info.getValue() ?? "—"}
       </span>
     ),
@@ -85,6 +91,7 @@ export function UnitsPreviewTable() {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "risk_score", desc: true },
   ]);
+  const [selectedUnitKey, setSelectedUnitKey] = useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["units", datasetId, filters],
@@ -106,78 +113,102 @@ export function UnitsPreviewTable() {
   if (!datasetId) return null;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900">Unit data preview</h2>
-          <p className="text-xs text-slate-500">
-            Structured view after ingest — click column headers to sort
-          </p>
+    <>
+      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Unit data preview</h2>
+            <p className="text-xs text-slate-500">
+              Click a row for full details and recommendations · sort via column headers
+            </p>
+          </div>
+          {data ? (
+            <span className="text-xs font-medium text-slate-600">
+              {data.total} units
+              {filtersActive ? " (filtered)" : ""}
+            </span>
+          ) : null}
         </div>
-        {data ? (
-          <span className="text-xs font-medium text-slate-600">
-            {data.total} units
-            {filtersActive ? " (filtered)" : ""}
-          </span>
-        ) : null}
-      </div>
 
-      {isLoading ? (
-        <p className="p-6 text-sm text-slate-500">Loading units…</p>
-      ) : isError ? (
-        <p className="p-6 text-sm text-red-600" role="alert">
-          {error instanceof Error ? error.message : "Failed to load units"}
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-4 py-3 font-medium">
-                      {header.isPlaceholder ? null : (
-                        <button
-                          type="button"
-                          className={
-                            header.column.getCanSort()
-                              ? "flex items-center gap-1 hover:text-slate-800"
-                              : ""
-                          }
-                          onClick={header.column.getToggleSortingHandler()}
+        {isLoading ? (
+          <p className="p-6 text-sm text-slate-500">Loading units…</p>
+        ) : isError ? (
+          <p className="p-6 text-sm text-red-600" role="alert">
+            {error instanceof Error ? error.message : "Failed to load units"}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th key={header.id} className="px-4 py-3 font-medium">
+                        {header.isPlaceholder ? null : (
+                          <button
+                            type="button"
+                            className={
+                              header.column.getCanSort()
+                                ? "flex items-center gap-1 hover:text-slate-800"
+                                : ""
+                            }
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                            {{
+                              asc: " ↑",
+                              desc: " ↓",
+                            }[header.column.getIsSorted() as string] ?? null}
+                          </button>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {table.getRowModel().rows.map((row) => {
+                  const unitKey = row.original.unit_key;
+                  const selected = selectedUnitKey === unitKey;
+
+                  return (
+                    <tr
+                      key={row.id}
+                      onClick={() => setSelectedUnitKey(unitKey)}
+                      className={`group cursor-pointer transition-colors ${
+                        selected
+                          ? "bg-brand-50 hover:bg-brand-50"
+                          : "hover:bg-slate-50/80"
+                      }`}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="whitespace-nowrap px-4 py-2.5"
                         >
                           {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
                           )}
-                          {{
-                            asc: " ↑",
-                            desc: " ↓",
-                          }[header.column.getIsSorted() as string] ?? null}
-                        </button>
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="hover:bg-slate-50/80"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="whitespace-nowrap px-4 py-2.5">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <UnitDetailDrawer
+        datasetId={datasetId}
+        unitKey={selectedUnitKey}
+        onClose={() => setSelectedUnitKey(null)}
+      />
+    </>
   );
 }
