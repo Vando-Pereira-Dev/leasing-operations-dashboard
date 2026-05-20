@@ -1,6 +1,15 @@
 import type { ApiError } from "@/types/api";
 
-const API_BASE = "/api";
+function resolveApiBase(): string {
+  const raw = import.meta.env.VITE_API_URL?.trim();
+  if (!raw) return "/api";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw.replace(/\/$/, "");
+  }
+  return `https://${raw.replace(/\/$/, "")}`;
+}
+
+const API_BASE = resolveApiBase();
 
 export class ApiRequestError extends Error {
   status: number;
