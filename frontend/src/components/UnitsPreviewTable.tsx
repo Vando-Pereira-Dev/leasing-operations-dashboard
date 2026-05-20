@@ -81,7 +81,7 @@ const columns = [
 ];
 
 export function UnitsPreviewTable() {
-  const { datasetId, filters } = useDataset();
+  const { datasetId, filters, filtersActive } = useDataset();
   const [sorting, setSorting] = useState<SortingState>([
     { id: "risk_score", desc: true },
   ]);
@@ -117,6 +117,7 @@ export function UnitsPreviewTable() {
         {data ? (
           <span className="text-xs font-medium text-slate-600">
             {data.total} units
+            {filtersActive ? " (filtered)" : ""}
           </span>
         ) : null}
       </div>

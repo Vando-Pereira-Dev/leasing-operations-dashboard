@@ -13,7 +13,11 @@ import type {
   KpiSummary,
   UploadResponse,
 } from "@/types/api";
-import { emptyFilters, type FilterState } from "@/types/filters";
+import {
+  emptyFilters,
+  hasActiveFilters,
+  type FilterState,
+} from "@/types/filters";
 
 type DatasetContextValue = {
   datasetId: string | null;
@@ -23,8 +27,11 @@ type DatasetContextValue = {
   filterOptions: FilterOptions | null;
   unitCount: number;
   filters: FilterState;
+  filtersActive: boolean;
   setUpload: (response: UploadResponse) => void;
   setFilters: (filters: FilterState) => void;
+  patchFilters: (patch: Partial<FilterState>) => void;
+  resetFilters: () => void;
   clearDataset: () => void;
 };
 
@@ -58,6 +65,14 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     setFilters(emptyFilters());
   }, []);
 
+  const patchFilters = useCallback((patch: Partial<FilterState>) => {
+    setFilters((prev) => ({ ...prev, ...patch }));
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFilters(emptyFilters());
+  }, []);
+
   const clearDataset = useCallback(() => {
     setDatasetId(null);
     setFilename(null);
@@ -68,6 +83,8 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
     setFilters(emptyFilters());
   }, []);
 
+  const filtersActive = hasActiveFilters(filters);
+
   const value = useMemo(
     () => ({
       datasetId,
@@ -77,8 +94,11 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       filterOptions,
       unitCount,
       filters,
+      filtersActive,
       setUpload,
       setFilters,
+      patchFilters,
+      resetFilters,
       clearDataset,
     }),
     [
@@ -89,7 +109,10 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       filterOptions,
       unitCount,
       filters,
+      filtersActive,
       setUpload,
+      patchFilters,
+      resetFilters,
       clearDataset,
     ],
   );

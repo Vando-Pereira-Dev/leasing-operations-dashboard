@@ -20,6 +20,23 @@ export const emptyFilters = (): FilterState => ({
   date_field: "marketing_start_date",
 });
 
+export function hasActiveFilters(filters: FilterState): boolean {
+  return (
+    filters.property.length > 0 ||
+    filters.status.length > 0 ||
+    filters.owner.length > 0 ||
+    filters.risk_category.length > 0 ||
+    Boolean(filters.date_from) ||
+    Boolean(filters.date_to)
+  );
+}
+
+export function toggleFilterValue(values: string[], value: string): string[] {
+  return values.includes(value)
+    ? values.filter((item) => item !== value)
+    : [...values, value];
+}
+
 export function filtersToSearchParams(filters: FilterState): URLSearchParams {
   const params = new URLSearchParams();
   filters.property.forEach((v) => params.append("property", v));

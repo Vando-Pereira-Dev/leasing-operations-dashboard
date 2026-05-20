@@ -11,7 +11,7 @@ import { WorkloadChart } from "@/components/dashboard/WorkloadChart";
 import { useDataset } from "@/context/DatasetContext";
 
 export function OperationalDashboard() {
-  const { datasetId, filters, unitCount } = useDataset();
+  const { datasetId, filters, filtersActive, unitCount } = useDataset();
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", datasetId, filters],
@@ -49,7 +49,6 @@ export function OperationalDashboard() {
   const dashboard = dashboardQuery.data;
   const units = unitsQuery.data?.units ?? [];
   const filteredCount = dashboard.unit_count;
-  const showingFiltered = filteredCount !== unitCount;
 
   return (
     <section className="space-y-6">
@@ -59,8 +58,8 @@ export function OperationalDashboard() {
             Operational insights
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            {showingFiltered
-              ? `${filteredCount} units match current filters (${unitCount} total)`
+            {filtersActive
+              ? `${filteredCount} units match filters (${unitCount} total)`
               : `${unitCount} units in portfolio`}
             {dashboard.forecast.portfolio_median != null
               ? ` · Median DOM (active): ${dashboard.forecast.portfolio_median} days`
