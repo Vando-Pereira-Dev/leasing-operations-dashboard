@@ -2,6 +2,8 @@
 
 Synthetic leasing data aligned with the **first take-home** (45 units, 3 properties, `numpy` seed `42`).
 
+See the [project README](../README.md) for how to run the app and load these files.
+
 | File | Format | Use |
 |------|--------|-----|
 | `sample_leasing_export.csv` | Legacy column names (`Property`, `Unit Number`, `Occupancy Status`, …) | Demo upload matching the original notebook/Excel |
