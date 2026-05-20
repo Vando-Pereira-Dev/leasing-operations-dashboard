@@ -50,3 +50,36 @@ class ProcessedDataset(BaseModel):
     units: list[dict[str, Any]]
     status_breakdown: dict[str, int]
     workload_by_owner: dict[str, int]
+
+
+class UploadResponse(BaseModel):
+    dataset_id: str
+    filename: str
+    ingest: IngestReport
+    kpis: KpiSummary
+    status_breakdown: dict[str, int]
+    filter_options: dict[str, list[str]]
+    unit_count: int
+
+
+class DashboardResponse(BaseModel):
+    dataset_id: str
+    filters_applied: dict[str, Any]
+    kpis: KpiSummary
+    properties: list[PropertySummary]
+    status_breakdown: dict[str, int]
+    workload_by_owner: dict[str, int]
+    forecast: dict[str, Any]
+    unit_count: int
+
+
+class UnitsListResponse(BaseModel):
+    dataset_id: str
+    filters_applied: dict[str, Any]
+    total: int
+    units: list[dict[str, Any]]
+
+
+class UnitDetailResponse(BaseModel):
+    dataset_id: str
+    unit: dict[str, Any]

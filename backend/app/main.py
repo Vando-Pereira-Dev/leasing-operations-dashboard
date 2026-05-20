@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import router as api_router
+
 app = FastAPI(
     title="Leasing Operations Dashboard API",
-    version="0.1.0",
+    version="0.2.0",
     description="Processes property management exports into operational leasing insights.",
 )
 
@@ -17,6 +19,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(api_router)
 
 
 @app.get("/health")

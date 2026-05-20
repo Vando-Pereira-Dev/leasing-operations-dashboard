@@ -20,8 +20,13 @@ from app.models import IngestReport, ProcessedDataset
 from app.transform import dataframe_to_records, enrich_dataframe
 
 
-def _build_dataset(mapped: pd.DataFrame, ingest_report: IngestReport) -> ProcessedDataset:
-    enriched = enrich_dataframe(mapped)
+def _build_dataset(
+    mapped: pd.DataFrame,
+    ingest_report: IngestReport,
+    enriched: pd.DataFrame | None = None,
+) -> ProcessedDataset:
+    if enriched is None:
+        enriched = enrich_dataframe(mapped)
     units = dataframe_to_records(enriched)
 
     for unit in units:
@@ -38,6 +43,15 @@ def _build_dataset(mapped: pd.DataFrame, ingest_report: IngestReport) -> Process
     )
 
 
+def build_processed(
+    mapped: pd.DataFrame,
+    ingest_report: IngestReport,
+) -> tuple[ProcessedDataset, pd.DataFrame]:
+    """Build API payload and retain enriched dataframe for filtered queries."""
+    enriched = enrich_dataframe(mapped)
+    return _build_dataset(mapped, ingest_report, enriched=enriched), enriched
+
+
 def process_dataframe(df: pd.DataFrame, filename: str = "upload") -> ProcessedDataset:
     mapped, ingest_report = ingest_dataframe(df, filename=filename)
     if ingest_report.missing_required:
@@ -46,7 +60,8 @@ def process_dataframe(df: pd.DataFrame, filename: str = "upload") -> ProcessedDa
             + ", ".join(ingest_report.missing_required)
             + ". Expected property, unit, and status fields."
         )
-    return _build_dataset(mapped, ingest_report)
+    dataset, _ = build_processed(mapped, ingest_report)
+    return dataset
 
 
 def process_bytes(file_bytes: bytes, filename: str) -> ProcessedDataset:
@@ -57,7 +72,22 @@ def process_bytes(file_bytes: bytes, filename: str) -> ProcessedDataset:
             + ", ".join(ingest_report.missing_required)
             + ". Expected property, unit, and status fields."
         )
-    return _build_dataset(mapped, ingest_report)
+    dataset, _ = build_processed(mapped, ingest_report)
+    return dataset
+
+
+def process_bytes_stored(
+    file_bytes: bytes,
+    filename: str,
+) -> tuple[ProcessedDataset, pd.DataFrame, IngestReport]:
+    mapped, ingest_report = ingest_bytes(file_bytes, filename)
+    if ingest_report.missing_required:
+        raise ValueError(
+            "Missing required columns: "
+            + ", ".join(ingest_report.missing_required)
+        )
+    dataset, enriched = build_processed(mapped, ingest_report)
+    return dataset, enriched, ingest_report
 
 
 def process_path(path: str | Path) -> ProcessedDataset:
@@ -67,7 +97,8 @@ def process_path(path: str | Path) -> ProcessedDataset:
             "Missing required columns: "
             + ", ".join(ingest_report.missing_required)
         )
-    return _build_dataset(mapped, ingest_report)
+    dataset, _ = build_processed(mapped, ingest_report)
+    return dataset
 
 
 def process_bytes_with_meta(file_bytes: bytes, filename: str) -> dict[str, Any]:
@@ -77,8 +108,7 @@ def process_bytes_with_meta(file_bytes: bytes, filename: str) -> dict[str, Any]:
         raise ValueError(
             "Missing required columns: " + ", ".join(ingest_report.missing_required)
         )
-    enriched = enrich_dataframe(mapped)
-    dataset = _build_dataset(mapped, ingest_report)
+    dataset, enriched = build_processed(mapped, ingest_report)
     payload = dataset.model_dump()
     payload["forecast"] = forecast_days_on_market(enriched)
     return payload
