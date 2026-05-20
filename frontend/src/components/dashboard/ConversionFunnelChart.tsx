@@ -10,10 +10,11 @@ import {
 } from "recharts";
 
 import { CHART_COLORS } from "@/components/dashboard/chartTheme";
-import type { UnitRecord } from "@/types/api";
+import type { KpiSummary, UnitRecord } from "@/types/api";
 
 type ConversionFunnelChartProps = {
   units: UnitRecord[];
+  kpis?: KpiSummary;
 };
 
 const STAGE_COLORS = [
@@ -23,11 +24,14 @@ const STAGE_COLORS = [
   CHART_COLORS.critical,
 ];
 
-export function ConversionFunnelChart({ units }: ConversionFunnelChartProps) {
-  const inquiries = units.reduce((s, u) => s + (Number(u.inquiries) || 0), 0);
-  const showings = units.reduce((s, u) => s + (Number(u.showings) || 0), 0);
-  const applications = units.filter((u) => u.application_received_bool === true).length;
-  const leases = units.filter((u) => u.lease_signed_bool === true).length;
+export function ConversionFunnelChart({ units, kpis }: ConversionFunnelChartProps) {
+  const inquiries = kpis?.total_inquiries ?? units.reduce((s, u) => s + (Number(u.inquiries) || 0), 0);
+  const showings = kpis?.total_showings ?? units.reduce((s, u) => s + (Number(u.showings) || 0), 0);
+  const applications =
+    kpis?.total_applications ??
+    units.filter((u) => u.application_received_bool === true).length;
+  const leases =
+    kpis?.total_leases ?? units.filter((u) => u.lease_signed_bool === true).length;
 
   const chartData = [
     { stage: "Inquiries", count: inquiries },

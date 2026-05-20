@@ -4,6 +4,7 @@ import { fetchDashboard, fetchUnits } from "@/api/leasing";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { ConversionFunnelChart } from "@/components/dashboard/ConversionFunnelChart";
 import { DomForecastChart } from "@/components/dashboard/DomForecastChart";
+import { DomHistogramChart } from "@/components/dashboard/DomHistogramChart";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { PortfolioAlerts } from "@/components/dashboard/PortfolioAlerts";
 import { PortfolioRecommendations } from "@/components/dashboard/PortfolioRecommendations";
@@ -80,9 +81,19 @@ export function OperationalDashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard
           title="Unit distribution by risk"
-          subtitle="Active and leased units scored for leasing risk"
+          subtitle="Active for-lease units only (matches first take-home)"
         >
           <RiskDistributionChart units={units} />
+        </ChartCard>
+
+        <ChartCard
+          title="Days on market distribution"
+          subtitle="Active units — dashed line is portfolio mean DOM"
+        >
+          <DomHistogramChart
+            units={units}
+            meanDays={dashboard.kpis.avg_days_on_market_active}
+          />
         </ChartCard>
 
         <ChartCard
@@ -103,7 +114,7 @@ export function OperationalDashboard() {
           title="Leasing conversion funnel"
           subtitle="Aggregate activity across filtered active units"
         >
-          <ConversionFunnelChart units={units} />
+          <ConversionFunnelChart units={units} kpis={dashboard.kpis} />
         </ChartCard>
 
         <ChartCard

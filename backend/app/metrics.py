@@ -24,29 +24,36 @@ def _safe_rate(numerator: float, denominator: float) -> float | None:
 
 def compute_kpis(df: pd.DataFrame) -> KpiSummary:
     active = df[df["is_active_for_lease"]] if "is_active_for_lease" in df.columns else df.iloc[0:0]
+    leased = int(df["is_leased"].sum()) if "is_leased" in df.columns else 0
+    total = len(df)
+    occupancy = round(leased / total * 100, 1) if total else None
 
-    inquiries = active["inquiries"].fillna(0) if "inquiries" in active.columns else pd.Series(dtype=float)
-    showings = active["showings"].fillna(0) if "showings" in active.columns else pd.Series(dtype=float)
-    apps = (
-        active["application_received_bool"].fillna(False)
-        if "application_received_bool" in active.columns
-        else pd.Series(dtype=bool)
-    )
-    leases = (
-        active["lease_signed_bool"].fillna(False)
-        if "lease_signed_bool" in active.columns
-        else pd.Series(dtype=bool)
-    )
+    # Portfolio-wide funnel totals (aligned with first take-home notebook)
+    inquiries_total = int(df["inquiries"].fillna(0).sum()) if "inquiries" in df.columns else 0
+    showings_total = int(df["showings"].fillna(0).sum()) if "showings" in df.columns else 0
+    if "application_received_bool" in df.columns:
+        applications_total = int(df["application_received_bool"].fillna(False).sum())
+    else:
+        applications_total = 0
+    if "lease_signed_bool" in df.columns:
+        leases_total = int(df["lease_signed_bool"].fillna(False).sum())
+    else:
+        leases_total = 0
 
     overpriced = 0
-    if "price_variance_pct" in active.columns:
+    underpriced = 0
+    avg_price_variance = None
+    if "price_variance_pct" in active.columns and len(active):
         overpriced = int((active["price_variance_pct"] > 5).sum())
+        underpriced = int((active["price_variance_pct"] < -5).sum())
+        avg_price_variance = round(float(active["price_variance_pct"].mean()), 1)
 
     return KpiSummary(
-        total_units=len(df),
+        total_units=total,
         vacant_units=int(df["is_vacant"].sum()) if "is_vacant" in df.columns else 0,
         active_for_lease_units=len(active),
-        leased_units=int(df["is_leased"].sum()) if "is_leased" in df.columns else 0,
+        leased_units=leased,
+        occupancy_rate=occupancy,
         upcoming_lease_expirations_60d=int(df["lease_expiring_60d"].sum())
         if "lease_expiring_60d" in df.columns
         else 0,
@@ -62,10 +69,18 @@ def compute_kpis(df: pd.DataFrame) -> KpiSummary:
         avg_days_on_market_active=round(float(active["days_on_market"].mean()), 1)
         if len(active) and "days_on_market" in active.columns and active["days_on_market"].notna().any()
         else None,
-        inquiry_to_showing_rate=_safe_rate(float(showings.sum()), float(inquiries.sum())),
-        showing_to_application_rate=_safe_rate(float(apps.sum()), float(showings.sum())),
-        application_to_lease_rate=_safe_rate(float(leases.sum()), float(apps.sum())),
+        total_inquiries=inquiries_total,
+        total_showings=showings_total,
+        total_applications=applications_total,
+        total_leases=leases_total,
+        inquiry_to_showing_rate=_safe_rate(float(showings_total), float(inquiries_total)),
+        showing_to_application_rate=_safe_rate(
+            float(applications_total), float(showings_total)
+        ),
+        application_to_lease_rate=_safe_rate(float(leases_total), float(applications_total)),
         overpriced_units=overpriced,
+        underpriced_units=underpriced,
+        avg_price_variance_active=avg_price_variance,
     )
 
 

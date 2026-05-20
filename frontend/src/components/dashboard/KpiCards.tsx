@@ -13,39 +13,55 @@ type CardDef = {
 
 const cards: CardDef[] = [
   { key: "total_units", label: "Total units" },
-  { key: "vacant_units", label: "Vacant units", hint: "Needs leasing attention" },
+  {
+    key: "occupancy_rate",
+    label: "Occupancy rate",
+    format: (v) => (v == null ? "—" : `${v}%`),
+  },
   { key: "active_for_lease_units", label: "Active for lease" },
   { key: "leased_units", label: "Leased / occupied" },
-  {
-    key: "upcoming_lease_expirations_60d",
-    label: "Lease expirations",
-    hint: "Within 60 days",
-  },
   { key: "critical_risk_units", label: "Critical risk" },
   { key: "at_risk_units", label: "At risk" },
-  { key: "incomplete_records", label: "Incomplete records" },
   {
     key: "avg_days_on_market_active",
     label: "Avg days on market",
     hint: "Active units",
     format: (v) => (v == null ? "—" : `${v} days`),
   },
+  { key: "total_inquiries", label: "Total inquiries", hint: "Portfolio-wide" },
+  { key: "total_showings", label: "Total showings", hint: "Portfolio-wide" },
   {
     key: "inquiry_to_showing_rate",
     label: "Inquiry → showing",
+    hint: "Portfolio-wide %",
     format: (v) => (v == null ? "—" : `${v}%`),
   },
   {
     key: "showing_to_application_rate",
     label: "Showing → application",
+    hint: "Portfolio-wide %",
     format: (v) => (v == null ? "—" : `${v}%`),
   },
   {
     key: "application_to_lease_rate",
     label: "Application → lease",
+    hint: "Portfolio-wide %",
     format: (v) => (v == null ? "—" : `${v}%`),
   },
-  { key: "overpriced_units", label: "Overpriced units", hint: ">5% above market" },
+  { key: "overpriced_units", label: "Overpriced units", hint: ">5% above market (active)" },
+  { key: "underpriced_units", label: "Underpriced units", hint: ">5% below market (active)" },
+  {
+    key: "avg_price_variance_active",
+    label: "Avg price variance",
+    hint: "Active units",
+    format: (v) => (v == null ? "—" : `${v}%`),
+  },
+  {
+    key: "upcoming_lease_expirations_60d",
+    label: "Lease expirations",
+    hint: "Within 60 days",
+  },
+  { key: "incomplete_records", label: "Incomplete records" },
 ];
 
 export function KpiCards({ kpis }: KpiCardsProps) {

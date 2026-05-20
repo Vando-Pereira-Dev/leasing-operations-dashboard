@@ -14,15 +14,22 @@ export type KpiSummary = {
   vacant_units: number;
   active_for_lease_units: number;
   leased_units: number;
+  occupancy_rate: number | null;
   upcoming_lease_expirations_60d: number;
   incomplete_records: number;
   at_risk_units: number;
   critical_risk_units: number;
   avg_days_on_market_active: number | null;
+  total_inquiries: number;
+  total_showings: number;
+  total_applications: number;
+  total_leases: number;
   inquiry_to_showing_rate: number | null;
   showing_to_application_rate: number | null;
   application_to_lease_rate: number | null;
   overpriced_units: number;
+  underpriced_units: number;
+  avg_price_variance_active: number | null;
 };
 
 export type PropertySummary = {
@@ -47,6 +54,9 @@ export type UnitRecord = {
   showings?: number;
   risk_score?: number;
   risk_category?: string;
+  is_active_for_lease?: boolean;
+  is_vacant?: boolean;
+  is_leased?: boolean;
   owner?: string;
   notes?: string;
   recommendations?: string[];

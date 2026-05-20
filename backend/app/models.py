@@ -23,15 +23,22 @@ class KpiSummary(BaseModel):
     vacant_units: int
     active_for_lease_units: int
     leased_units: int
+    occupancy_rate: float | None
     upcoming_lease_expirations_60d: int
     incomplete_records: int
     at_risk_units: int
     critical_risk_units: int
     avg_days_on_market_active: float | None
+    total_inquiries: int
+    total_showings: int
+    total_applications: int
+    total_leases: int
     inquiry_to_showing_rate: float | None
     showing_to_application_rate: float | None
     application_to_lease_rate: float | None
     overpriced_units: int
+    underpriced_units: int
+    avg_price_variance_active: float | None
 
 
 class PropertySummary(BaseModel):
