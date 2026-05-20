@@ -1,37 +1,45 @@
-import { useEffect, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-type HealthResponse = {
-  status: string;
-  service: string;
-};
+import { AppLayout } from "@/components/layout/AppLayout";
+import { DataSetupPanel } from "@/components/DataSetupPanel";
+import { KpiPreview } from "@/components/KpiPreview";
+import { DatasetProvider, useDataset } from "@/context/DatasetContext";
 
-export default function App() {
-  const [apiStatus, setApiStatus] = useState<string>("checking…");
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+    },
+  },
+});
 
-  useEffect(() => {
-    fetch("/api/health")
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<HealthResponse>;
-      })
-      .then((data) => setApiStatus(`${data.service} — ${data.status}`))
-      .catch(() => setApiStatus("unreachable (start backend on :8000)"));
-  }, []);
+function DashboardShell() {
+  const { kpis } = useDataset();
 
   return (
-    <main className="app">
-      <header>
-        <p className="eyebrow">VirtuAll VA · Proof of Concept</p>
-        <h1>Leasing Operations Dashboard</h1>
-        <p className="subtitle">
-          Upload property management exports and turn raw leasing data into
-          operational insights.
-        </p>
-      </header>
-      <section className="status-card">
-        <span className="label">API</span>
-        <span className="value">{apiStatus}</span>
-      </section>
-    </main>
+    <div className="space-y-6">
+      <DataSetupPanel />
+      {kpis ? (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Operational snapshot
+          </h2>
+          <KpiPreview kpis={kpis} />
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DatasetProvider>
+        <AppLayout>
+          <DashboardShell />
+        </AppLayout>
+      </DatasetProvider>
+    </QueryClientProvider>
   );
 }
