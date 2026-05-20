@@ -3,7 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchDashboard, fetchUnits } from "@/api/leasing";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { ConversionFunnelChart } from "@/components/dashboard/ConversionFunnelChart";
+import { DomForecastChart } from "@/components/dashboard/DomForecastChart";
 import { KpiCards } from "@/components/dashboard/KpiCards";
+import { PortfolioAlerts } from "@/components/dashboard/PortfolioAlerts";
+import { PortfolioRecommendations } from "@/components/dashboard/PortfolioRecommendations";
 import { PropertyOccupancyChart } from "@/components/dashboard/PropertyOccupancyChart";
 import { RiskDistributionChart } from "@/components/dashboard/RiskDistributionChart";
 import { StatusBreakdownChart } from "@/components/dashboard/StatusBreakdownChart";
@@ -68,7 +71,11 @@ export function OperationalDashboard() {
         </div>
       </div>
 
+      <PortfolioAlerts alerts={dashboard.alerts} />
+
       <KpiCards kpis={dashboard.kpis} />
+
+      <PortfolioRecommendations recommendations={dashboard.recommendations} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard
@@ -108,25 +115,12 @@ export function OperationalDashboard() {
 
         <ChartCard
           title="Median days on market by property"
-          subtitle="Forecast baseline for active units (POC)"
+          subtitle="POC forecast baseline — dashed line is portfolio median"
         >
-          {Object.keys(dashboard.forecast.by_property).length > 0 ? (
-            <ul className="space-y-2 text-sm">
-              {Object.entries(dashboard.forecast.by_property)
-                .sort(([, a], [, b]) => b - a)
-                .map(([property, days]) => (
-                  <li
-                    key={property}
-                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
-                  >
-                    <span className="text-slate-700">{property}</span>
-                    <span className="font-semibold text-slate-900">{days} days</span>
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-slate-500">No active units for DOM forecast</p>
-          )}
+          <DomForecastChart
+            byProperty={dashboard.forecast.by_property}
+            portfolioMedian={dashboard.forecast.portfolio_median}
+          />
         </ChartCard>
       </div>
     </section>

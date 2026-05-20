@@ -12,12 +12,10 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
 from app.filters import FilterQuery, apply_filters, filter_options
 from app.metrics import (
-    compute_kpis,
     forecast_days_on_market,
-    property_summaries,
-    status_breakdown,
+    portfolio_alerts,
+    portfolio_recommendations,
     unit_recommendations,
-    workload_by_owner,
 )
 from app.models import (
     DashboardResponse,
@@ -170,6 +168,8 @@ def get_dashboard(
         status_breakdown=view["status_breakdown"],
         workload_by_owner=view["workload_by_owner"],
         forecast=forecast_days_on_market(filtered),
+        alerts=portfolio_alerts(filtered),
+        recommendations=portfolio_recommendations(filtered),
         unit_count=len(filtered),
     )
 

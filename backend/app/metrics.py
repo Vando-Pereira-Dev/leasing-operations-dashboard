@@ -7,7 +7,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from app.models import KpiSummary, PropertySummary
+from app.models import (
+    KpiSummary,
+    PortfolioAlert,
+    PortfolioRecommendation,
+    PropertySummary,
+)
 from app.transform import categorize_risk
 
 
@@ -156,6 +161,208 @@ def unit_recommendations(row: pd.Series) -> list[str]:
             recs.append("Performing on track — maintain current pricing and marketing approach.")
         else:
             recs.append("Monitor weekly — early risk signals present but no single dominant issue.")
+
+    return recs
+
+
+def portfolio_alerts(df: pd.DataFrame) -> list[PortfolioAlert]:
+    """Surface portfolio-level issues for ops leadership."""
+    alerts: list[PortfolioAlert] = []
+
+    if "incomplete_record" in df.columns:
+        incomplete = df[df["incomplete_record"]]
+        if len(incomplete) > 0:
+            alerts.append(
+                PortfolioAlert(
+                    severity="warning",
+                    title="Incomplete records",
+                    message=f"{len(incomplete)} unit(s) missing required operational fields.",
+                    unit_keys=incomplete["unit_key"].astype(str).tolist()[:8],
+                )
+            )
+
+    if "risk_category" in df.columns:
+        critical = df[df["risk_category"] == "Critical"]
+        if len(critical) > 0:
+            alerts.append(
+                PortfolioAlert(
+                    severity="critical",
+                    title="Critical leasing risk",
+                    message=f"{len(critical)} unit(s) need immediate leasing intervention.",
+                    unit_keys=critical["unit_key"].astype(str).tolist()[:8],
+                )
+            )
+
+    if "lease_expiring_60d" in df.columns:
+        expiring = df[df["lease_expiring_60d"]]
+        if len(expiring) > 0:
+            alerts.append(
+                PortfolioAlert(
+                    severity="warning",
+                    title="Upcoming lease expirations",
+                    message=f"{len(expiring)} lease(s) expire within 60 days — plan renewals.",
+                    unit_keys=expiring["unit_key"].astype(str).tolist()[:8],
+                )
+            )
+
+    active = df[df["is_active_for_lease"]] if "is_active_for_lease" in df.columns else df.iloc[0:0]
+    if len(active) and "price_variance_pct" in active.columns:
+        overpriced = active[active["price_variance_pct"] > 7]
+        if len(overpriced) > 0:
+            alerts.append(
+                PortfolioAlert(
+                    severity="warning",
+                    title="Overpriced active units",
+                    message=f"{len(overpriced)} active unit(s) priced >7% above market.",
+                    unit_keys=overpriced["unit_key"].astype(str).tolist()[:8],
+                )
+            )
+
+    if len(active) and "days_on_market" in active.columns:
+        extended = active[active["days_on_market"] > 75]
+        if len(extended) > 0:
+            alerts.append(
+                PortfolioAlert(
+                    severity="critical",
+                    title="Extended vacancies",
+                    message=f"{len(extended)} unit(s) vacant 75+ days on market.",
+                    unit_keys=extended["unit_key"].astype(str).tolist()[:8],
+                )
+            )
+
+    if not alerts:
+        alerts.append(
+            PortfolioAlert(
+                severity="info",
+                title="Portfolio stable",
+                message="No critical alert thresholds triggered for the current view.",
+                unit_keys=[],
+            )
+        )
+
+    return alerts
+
+
+def portfolio_recommendations(df: pd.DataFrame) -> list[PortfolioRecommendation]:
+    """Portfolio-level actions aligned with the first take-home playbook."""
+    recs: list[PortfolioRecommendation] = []
+    active = df[df["is_active_for_lease"]] if "is_active_for_lease" in df.columns else df.iloc[0:0]
+
+    if len(active) and "price_variance_pct" in active.columns:
+        overpriced = active[active["price_variance_pct"] > 7]
+        if len(overpriced) > 0:
+            units = overpriced["unit"].astype(str).head(3).tolist()
+            recs.append(
+                PortfolioRecommendation(
+                    priority="immediate",
+                    title="Pricing review",
+                    action=(
+                        f"Review and reduce pricing on {', '.join(units)}"
+                        f"{'…' if len(overpriced) > 3 else ''}. "
+                        "Consider a 5–10% market adjustment to improve competitiveness."
+                    ),
+                    unit_keys=overpriced["unit_key"].astype(str).tolist()[:10],
+                )
+            )
+
+    if len(active) and "days_on_market" in active.columns:
+        extended = active[active["days_on_market"] > 75]
+        if len(extended) > 0:
+            units = extended["unit"].astype(str).tolist()
+            recs.append(
+                PortfolioRecommendation(
+                    priority="immediate",
+                    title="Extended vacancy strategy",
+                    action=(
+                        f"Immediate review for {', '.join(units[:3])}"
+                        f"{', …' if len(units) > 3 else ''}: incentives, "
+                        "unit improvements, or repositioning."
+                    ),
+                    unit_keys=extended["unit_key"].astype(str).tolist()[:10],
+                )
+            )
+
+    if len(active) and "inquiries" in active.columns and "days_on_market" in active.columns:
+        low_inquiry = active[(active["inquiries"] < 3) & (active["days_on_market"] > 20)]
+        if len(low_inquiry) > 0:
+            units = low_inquiry["unit"].astype(str).head(3).tolist()
+            recs.append(
+                PortfolioRecommendation(
+                    priority="high",
+                    title="Marketing boost",
+                    action=(
+                        f"Increase marketing for {', '.join(units)}: refreshed photos, "
+                        "broader listings, and virtual tours."
+                    ),
+                    unit_keys=low_inquiry["unit_key"].astype(str).tolist()[:10],
+                )
+            )
+
+    if len(active) and "inquiries" in active.columns and "showings" in active.columns:
+        poor = active[
+            active["inquiries"].fillna(0) > 0
+        ].copy()
+        poor["rate"] = poor["showings"].fillna(0) / poor["inquiries"] * 100
+        poor = poor[poor["rate"] < 40]
+        if len(poor) > 0:
+            units = poor["unit"].astype(str).head(3).tolist()
+            recs.append(
+                PortfolioRecommendation(
+                    priority="high",
+                    title="Leasing follow-up",
+                    action=(
+                        f"Improve agent follow-up for {', '.join(units)} — faster responses "
+                        "and flexible showing times."
+                    ),
+                    unit_keys=poor["unit_key"].astype(str).tolist()[:10],
+                )
+            )
+
+    if "risk_category" in df.columns:
+        performers = df[(df["risk_category"] == "On Track") & df["is_active_for_lease"]]
+        if len(performers) > 0:
+            units = performers["unit"].astype(str).head(2).tolist()
+            recs.append(
+                PortfolioRecommendation(
+                    priority="medium",
+                    title="Replicate winners",
+                    action=(
+                        f"Document success factors from {', '.join(units)} and apply "
+                        "learnings to slower units."
+                    ),
+                    unit_keys=performers["unit_key"].astype(str).tolist()[:5],
+                )
+            )
+
+    if "property" in df.columns and "days_on_market" in df.columns:
+        type_perf = (
+            active.groupby("unit_type")["days_on_market"].mean().sort_values(ascending=False)
+            if len(active) and "unit_type" in active.columns
+            else pd.Series(dtype=float)
+        )
+        if len(type_perf) and type_perf.iloc[0] > 45:
+            slow_type = str(type_perf.index[0])
+            recs.append(
+                PortfolioRecommendation(
+                    priority="strategic",
+                    title="Unit type focus",
+                    action=(
+                        f"{slow_type} units average {round(float(type_perf.iloc[0]), 0)} DOM — "
+                        f"build targeted leasing playbook for this segment."
+                    ),
+                    unit_keys=[],
+                )
+            )
+
+    if not recs:
+        recs.append(
+            PortfolioRecommendation(
+                priority="medium",
+                title="Maintain momentum",
+                action="Continue weekly KPI reviews; no urgent portfolio-wide actions detected.",
+                unit_keys=[],
+            )
+        )
 
     return recs
 

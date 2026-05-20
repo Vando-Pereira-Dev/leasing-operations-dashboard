@@ -33,6 +33,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(dash.status_code, 200)
         self.assertEqual(dash.json()["unit_count"], 45)
         self.assertGreater(dash.json()["kpis"]["total_units"], 0)
+        self.assertGreater(len(dash.json()["alerts"]), 0)
+        self.assertGreater(len(dash.json()["recommendations"]), 0)
 
     def test_upload_legacy_csv(self) -> None:
         path = DATA / "sample_leasing_export.csv"

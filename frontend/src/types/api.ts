@@ -63,6 +63,20 @@ export type UploadResponse = {
   unit_count: number;
 };
 
+export type PortfolioAlert = {
+  severity: "critical" | "warning" | "info" | string;
+  title: string;
+  message: string;
+  unit_keys: string[];
+};
+
+export type PortfolioRecommendation = {
+  priority: "immediate" | "high" | "medium" | "strategic" | string;
+  title: string;
+  action: string;
+  unit_keys: string[];
+};
+
 export type DashboardResponse = {
   dataset_id: string;
   filters_applied: Record<string, unknown>;
@@ -74,6 +88,8 @@ export type DashboardResponse = {
     by_property: Record<string, number>;
     portfolio_median: number | null;
   };
+  alerts: PortfolioAlert[];
+  recommendations: PortfolioRecommendation[];
   unit_count: number;
 };
 

@@ -62,6 +62,20 @@ class UploadResponse(BaseModel):
     unit_count: int
 
 
+class PortfolioAlert(BaseModel):
+    severity: str
+    title: str
+    message: str
+    unit_keys: list[str] = Field(default_factory=list)
+
+
+class PortfolioRecommendation(BaseModel):
+    priority: str
+    title: str
+    action: str
+    unit_keys: list[str] = Field(default_factory=list)
+
+
 class DashboardResponse(BaseModel):
     dataset_id: str
     filters_applied: dict[str, Any]
@@ -70,6 +84,8 @@ class DashboardResponse(BaseModel):
     status_breakdown: dict[str, int]
     workload_by_owner: dict[str, int]
     forecast: dict[str, Any]
+    alerts: list[PortfolioAlert] = Field(default_factory=list)
+    recommendations: list[PortfolioRecommendation] = Field(default_factory=list)
     unit_count: int
 
 
